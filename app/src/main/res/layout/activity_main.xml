@@ -10,8 +10,43 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="letmethink.mx.yamplayer.MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!" />
+
+    <ListView
+        android:id="@+id/list_view"
+        android:layout_width="match_parent"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="17dp"
+        android:layout_height="320dp" />
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_gravity="center_vertical|center_horizontal|center"
+        android:minHeight="32dp"
+        android:gravity="bottom|center_vertical|center_horizontal|center"
+        android:layout_below="@+id/list_view"
+        android:id="@+id/player_controls">
+
+        <Button
+            android:text="Prev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/player_prev" />
+
+        <Button
+            android:text="Play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/player_play_pause" />
+
+        <Button
+            android:text="Next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/player_next" />
+    </TableRow>
 </RelativeLayout>
+
