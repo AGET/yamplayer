@@ -18,17 +18,23 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     private static final String ERROR_TAG = "ERROR";
+    private static final int HISTORY_SIZE = 100;
     private FileSystem fs = new FileSystem();
     private Random random = new Random(System.currentTimeMillis());
-
-
     private ListView songList;
     private MediaPlayer player;
     private File[] library;
+    private LinkedList<Integer> playbackHistory;
+    private Integer currentSong;
+
+    private Button prevButton;
+    private Button nextButton;
+    private Button playButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         songList = (ListView) findViewById(R.id.list_view);
+        playbackHistory = new LinkedList<>();
 
         String path = System.getenv("SECONDARY_STORAGE") + "/music";
         new FileLoader().execute(path);
@@ -43,15 +50,20 @@ public class MainActivity extends AppCompatActivity {
         player = new MediaPlayer();
         player.setOnPreparedListener(new PlayerPreparer());
 
-        Button prevButton = (Button) findViewById(R.id.player_prev);
+        prevButton = (Button) findViewById(R.id.player_prev);
         prevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                playSong(random.nextInt(library.length));
+                if (playbackHistory.isEmpty()) {
+                    player.seekTo(0);
+                } else {
+                    Integer prev = playbackHistory.removeLast();
+                    playSong(prev);
+                }
             }
         });
 
-        final Button playButton = (Button) findViewById(R.id.player_play_pause);
+        playButton = (Button) findViewById(R.id.player_play_pause);
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -65,18 +77,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button nextButton = (Button) findViewById(R.id.player_next);
+        nextButton = (Button) findViewById(R.id.player_next);
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                playSong(random.nextInt(library.length));
+                playNext();
             }
         });
 
         player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                playSong(random.nextInt(library.length));
+                playNext();
             }
         });
     }
@@ -88,9 +100,26 @@ public class MainActivity extends AppCompatActivity {
         songList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                playSong(position);
+                playNext(position);
             }
         });
+    }
+
+    private void playNext() {
+        int position = random.nextInt(library.length);
+        playNext(position);
+    }
+
+    private void playNext(int position) {
+        if (currentSong != null) {
+            playbackHistory.addLast(currentSong);
+        }
+
+        // History size is fixed, if full remove the oldest element.
+        if (playbackHistory.size() > HISTORY_SIZE) {
+            playbackHistory.removeFirst();
+        }
+        playSong(position);
     }
 
     private void playSong(int position) {
@@ -112,7 +141,8 @@ public class MainActivity extends AppCompatActivity {
         String title = library[position].getName();
         Toast.makeText(getApplicationContext(), title, Toast.LENGTH_LONG).show();
         songList.setSelection(position);
-        songList.setSelector(R.color.colorPrimaryDark);
+        currentSong = position;
+        playButton.setText("Pause");
         player.prepareAsync();
     }
 
