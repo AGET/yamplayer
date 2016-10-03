@@ -51,14 +51,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button playButton = (Button) findViewById(R.id.player_play_pause);
+        final Button playButton = (Button) findViewById(R.id.player_play_pause);
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (player.isPlaying()) {
                     player.pause();
+                    playButton.setText("Play");
                 } else {
                     player.start();
+                    playButton.setText("Pause");
                 }
             }
         });
@@ -71,6 +73,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                playSong(random.nextInt(library.length));
+            }
+        });
     }
 
     private void populateSongList(final File[] files) {
@@ -102,7 +110,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String title = library[position].getName();
-        Toast.makeText(getApplicationContext(), "Playing \"" + title + "\"", Toast.LENGTH_LONG).show();
+        Toast.makeText(getApplicationContext(), title, Toast.LENGTH_LONG).show();
+        songList.setSelection(position);
+        songList.setSelector(R.color.colorPrimaryDark);
         player.prepareAsync();
     }
 
