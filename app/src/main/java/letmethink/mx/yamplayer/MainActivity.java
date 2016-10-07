@@ -4,11 +4,16 @@
 
 package letmethink.mx.yamplayer;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -24,22 +29,25 @@ import java.util.Random;
 public class MainActivity extends AppCompatActivity {
     private static final String ERROR_TAG = "ERROR";
     private static final int HISTORY_SIZE = 100;
+    private static final int UNDEFINED = -1;
     private FileSystem fs = new FileSystem();
     private Random random = new Random(System.currentTimeMillis());
     private ListView songList;
     private MediaPlayer player;
     private File[] library;
     private LinkedList<Integer> playbackHistory;
-    private Integer currentSong;
+    private int currentSong = UNDEFINED;
 
     private Button prevButton;
     private Button nextButton;
     private Button playButton;
+    private static final String YAMPLAYER_SETTINGS_FILE = "yamplayer_settings";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
 
         songList = (ListView) findViewById(R.id.list_view);
         playbackHistory = new LinkedList<>();
@@ -93,6 +101,21 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        if (player.isPlaying() && currentSong != UNDEFINED) {
+            player.pause();
+            editor.putInt("current_song", currentSong);
+            editor.putInt("current_position", player.getCurrentPosition());
+            editor.commit();
+        }
+        player.release();
+    }
+
     private void populateSongList(final File[] files) {
         library = files;
         ArrayAdapter adapter = new ArrayAdapter<>(this, R.layout.song_item, fs.getFileNames(files));
@@ -111,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playNext(int position) {
-        if (currentSong != null) {
+        if (currentSong != UNDEFINED) {
             playbackHistory.addLast(currentSong);
         }
 
@@ -161,13 +184,51 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(File[] files) {
             populateSongList(files);
+            SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+            int song = settings.getInt("current_song", UNDEFINED);
+            if (song != UNDEFINED) {
+                String songFile = library[song].getAbsolutePath();
+                try {
+                    player.setDataSource(songFile);
+                    currentSong = song;
+                    player.prepareAsync();
+                } catch (IOException ioe) {
+                    Log.e(ERROR_TAG, "Failed to load media files: " + ioe.getMessage());
+                }
+            }
         }
     }
 
     private class PlayerPreparer implements MediaPlayer.OnPreparedListener {
         @Override
         public void onPrepared(MediaPlayer player) {
+            SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+            int position = settings.getInt("current_position", UNDEFINED);
+            if (position != UNDEFINED) {
+                player.seekTo(position);
+                settings.edit().clear().commit();
+            }
             player.start();
+            playButton.setText("Pause");
+        }
+    }
+
+    public class RemoteControlReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_MEDIA_BUTTON.equals(intent.getAction())) {
+                KeyEvent event = (KeyEvent)intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                if (KeyEvent.KEYCODE_MEDIA_PLAY == event.getKeyCode()) {
+                    if (player.isPlaying()) {
+                        player.pause();
+                        playButton.setText("Play");
+                    } else {
+                        player.start();
+                        playButton.setText("Pause");
+                    }
+                }
+            }
         }
     }
 }
