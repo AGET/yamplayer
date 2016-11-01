@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ToggleButton;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private Button prevButton;
     private Button nextButton;
     private Button playButton;
+    private ToggleButton shuffleButton;
     private static final String YAMPLAYER_SETTINGS_FILE = "yamplayer_settings";
 
     @Override
@@ -93,6 +95,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        shuffleButton = (ToggleButton) findViewById(R.id.shuffle);
+
         player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
@@ -129,7 +133,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playNext() {
-        int position = random.nextInt(library.length);
+        int position = currentSong + 1;
+        if (shuffleButton.isChecked()) {
+            position = random.nextInt(library.length);
+        }
         playNext(position);
     }
 
